@@ -18,7 +18,7 @@ export interface Application {
 interface BackendCameraStatus {
   imageSourceId: number;
   imageSourceLabel: string;
-  status: number; // 0 = online, 1 = warning, 2 = offline
+  status: string; // "Online" | "Standby" | "Inactive" | "Offline"
   lastRecognitionEventDateTime: string;
   url: string;
   inactiveMinutes: number;
@@ -47,12 +47,14 @@ class ApiService {
     this.baseURL = baseURL;
   }
 
-  // Mapear status numérico para string
-  private mapCameraStatus(status: number): "online" | "offline" | "warning" {
-    switch (status) {
-      case 0: return "online";
-      case 1: return "warning";
-      case 2: return "offline";
+  // Mapear status string para padrão das câmeras
+  private mapCameraStatus(status: string): "online" | "offline" | "warning" {
+    const normalizedStatus = status.toLowerCase();
+    switch (normalizedStatus) {
+      case "online": return "online";
+      case "standby": return "warning";
+      case "inactive": return "warning";
+      case "offline": return "offline";
       default: return "offline";
     }
   }
