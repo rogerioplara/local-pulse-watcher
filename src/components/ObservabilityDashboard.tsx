@@ -1,66 +1,38 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Server, Cpu, Clock, Activity, Circle } from "lucide-react";
+import { Camera, Server, Cpu, Clock, Activity, Circle, RefreshCw } from "lucide-react";
 import { ApplicationCard } from "./ApplicationCard";
-
-// Mock data - será substituído por dados reais do endpoint
-type StatusType = "online" | "offline" | "warning";
-
-interface Camera {
-  id: string;
-  name: string;
-  status: StatusType;
-}
-
-interface Application {
-  id: string;
-  name: string;
-  lastRecognition: Date;
-  coreStatus: StatusType;
-  serverStatus: StatusType;
-  cameras: Camera[];
-}
-
-const mockApplications: Application[] = [
-  {
-    id: "app-1",
-    name: "Sistema Principal",
-    lastRecognition: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
-    coreStatus: "online" as StatusType,
-    serverStatus: "online" as StatusType, 
-    cameras: [
-      { id: "cam-1", name: "Câmera Entrada", status: "online" as StatusType },
-      { id: "cam-2", name: "Câmera Saída", status: "online" as StatusType },
-      { id: "cam-3", name: "Câmera Estacionamento", status: "warning" as StatusType },
-    ]
-  },
-  {
-    id: "app-2", 
-    name: "Sistema Backup",
-    lastRecognition: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
-    coreStatus: "warning" as StatusType,
-    serverStatus: "online" as StatusType,
-    cameras: [
-      { id: "cam-4", name: "Câmera Principal", status: "online" as StatusType },
-      { id: "cam-5", name: "Câmera Auxiliar", status: "offline" as StatusType },
-    ]
-  },
-  {
-    id: "app-3",
-    name: "Sistema Filial A", 
-    lastRecognition: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
-    coreStatus: "offline" as StatusType,
-    serverStatus: "offline" as StatusType,
-    cameras: [
-      { id: "cam-6", name: "Câmera Hall", status: "offline" as StatusType },
-      { id: "cam-7", name: "Câmera Recepção", status: "offline" as StatusType },
-      { id: "cam-8", name: "Câmera Corredor", status: "offline" as StatusType },
-      { id: "cam-9", name: "Câmera Externa", status: "offline" as StatusType },
-    ]
-  }
-];
+import { useApplications } from "@/hooks/useApplications";
+import { Button } from "@/components/ui/button";
 
 export const ObservabilityDashboard = () => {
+  const { applications, loading, error, refetch } = useApplications();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Carregando aplicações...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Erro ao carregar dados: {error}</p>
+          <Button onClick={refetch} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -76,6 +48,10 @@ export const ObservabilityDashboard = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            <Button onClick={refetch} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Activity className="h-4 w-4" />
               <span>Última atualização: {new Date().toLocaleTimeString()}</span>
@@ -93,7 +69,7 @@ export const ObservabilityDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Aplicações Online</p>
                 <p className="text-2xl font-bold text-status-online">
-                  {mockApplications.filter(app => app.coreStatus === "online").length}
+                  {applications.filter(app => app.coreStatus === "online").length}
                 </p>
               </div>
             </div>
@@ -107,7 +83,7 @@ export const ObservabilityDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Com Alertas</p>
                 <p className="text-2xl font-bold text-status-warning">
-                  {mockApplications.filter(app => app.coreStatus === "warning").length}
+                  {applications.filter(app => app.coreStatus === "warning").length}
                 </p>
               </div>
             </div>
@@ -121,7 +97,7 @@ export const ObservabilityDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Offline</p>
                 <p className="text-2xl font-bold text-status-offline">
-                  {mockApplications.filter(app => app.coreStatus === "offline").length}
+                  {applications.filter(app => app.coreStatus === "offline").length}
                 </p>
               </div>
             </div>
@@ -135,7 +111,7 @@ export const ObservabilityDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Câmeras</p>
                 <p className="text-2xl font-bold text-primary">
-                  {mockApplications.reduce((acc, app) => acc + app.cameras.length, 0)}
+                  {applications.reduce((acc, app) => acc + app.cameras.length, 0)}
                 </p>
               </div>
             </div>
@@ -144,10 +120,17 @@ export const ObservabilityDashboard = () => {
 
         {/* Applications Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
-          {mockApplications.map((application) => (
+          {applications.map((application) => (
             <ApplicationCard key={application.id} application={application} />
           ))}
         </div>
+
+        {applications.length === 0 && (
+          <div className="text-center py-12">
+            <Server className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Nenhuma aplicação encontrada</p>
+          </div>
+        )}
       </div>
     </div>
   );
