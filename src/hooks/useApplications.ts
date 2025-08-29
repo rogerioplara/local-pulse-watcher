@@ -6,6 +6,7 @@ export const useApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const fetchApplications = async () => {
@@ -14,6 +15,7 @@ export const useApplications = () => {
       setError(null);
       const data = await apiService.getApplications();
       setApplications(data);
+      setLastUpdate(new Date());
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar aplicações';
       setError(errorMessage);
@@ -40,6 +42,7 @@ export const useApplications = () => {
     applications,
     loading,
     error,
+    lastUpdate,
     refetch: fetchApplications,
   };
 };

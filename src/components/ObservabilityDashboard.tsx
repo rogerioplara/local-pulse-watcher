@@ -6,7 +6,7 @@ import { useApplications } from "@/hooks/useApplications";
 import { Button } from "@/components/ui/button";
 
 export const ObservabilityDashboard = () => {
-  const { applications, loading, error, refetch } = useApplications();
+  const { applications, loading, error, lastUpdate, refetch } = useApplications();
 
   if (loading) {
     return (
@@ -54,7 +54,7 @@ export const ObservabilityDashboard = () => {
             </Button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Activity className="h-4 w-4" />
-              <span>Última atualização: {new Date().toLocaleTimeString()}</span>
+              <span>Última atualização: {lastUpdate ? lastUpdate.toLocaleTimeString() : 'Carregando...'}</span>
             </div>
           </div>
         </div>

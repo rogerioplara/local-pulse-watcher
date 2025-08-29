@@ -14,6 +14,29 @@ export interface Application {
   cameras: Camera[];
 }
 
+// Interfaces para os dados que vêm do backend
+interface BackendCameraStatus {
+  imageSourceId: number;
+  imageSourceLabel: string;
+  status: number; // 0 = online, 1 = warning, 2 = offline
+  lastRecognitionEventDateTime: string;
+  url: string;
+  inactiveMinutes: number;
+}
+
+interface BackendApplicationData {
+  coreStatus: string;
+  serverStatus: string;
+  lastRecognition: string;
+  cameraStatus: BackendCameraStatus[];
+}
+
+interface BackendApplicationResponse {
+  url: string;
+  data?: BackendApplicationData;
+  error?: string;
+}
+
 // Configure a URL do backend no arquivo .env
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
@@ -22,6 +45,24 @@ class ApiService {
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
+  }
+
+  // Mapear status numérico para string
+  private mapCameraStatus(status: number): "online" | "offline" | "warning" {
+    switch (status) {
+      case 0: return "online";
+      case 1: return "warning";
+      case 2: return "offline";
+      default: return "offline";
+    }
+  }
+
+  // Mapear status string para padrão
+  private mapApplicationStatus(status: string): "online" | "offline" | "warning" {
+    const normalizedStatus = status.toLowerCase();
+    if (normalizedStatus === "online") return "online";
+    if (normalizedStatus === "warning") return "warning";
+    return "offline";
   }
 
   // Buscar todas as aplicações
@@ -33,13 +74,36 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data: BackendApplicationResponse[] = await response.json();
       
-      // Transformar os dados se necessário para adequar ao formato esperado
-      return data.map((app: any) => ({
-        ...app,
-        lastRecognition: new Date(app.lastRecognition)
-      }));
+      // Transformar os dados para o formato esperado pela aplicação
+      return data.map((item) => {
+        if (item.error) {
+          // Aplicação offline
+          return {
+            id: item.url,
+            name: item.url,
+            lastRecognition: new Date(0), // Data antiga para indicar sem resposta
+            coreStatus: "offline" as const,
+            serverStatus: "offline" as const,
+            cameras: []
+          };
+        }
+
+        const appData = item.data!;
+        return {
+          id: item.url,
+          name: item.url,
+          lastRecognition: new Date(appData.lastRecognition),
+          coreStatus: this.mapApplicationStatus(appData.coreStatus),
+          serverStatus: this.mapApplicationStatus(appData.serverStatus),
+          cameras: appData.cameraStatus.map((camera) => ({
+            id: camera.imageSourceId.toString(),
+            name: camera.imageSourceLabel,
+            status: this.mapCameraStatus(camera.status)
+          }))
+        };
+      });
     } catch (error) {
       console.error("Erro ao buscar aplicações:", error);
       throw error;
