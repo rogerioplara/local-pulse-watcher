@@ -14,8 +14,8 @@ export interface Application {
   cameras: Camera[];
 }
 
-// Configure aqui a URL do seu backend
-const API_BASE_URL = "http://localhost:8080"; // Altere para a URL do seu backend
+// Configure a URL do backend no arquivo .env
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 class ApiService {
   private baseURL: string;
